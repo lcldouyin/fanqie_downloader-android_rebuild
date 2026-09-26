@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">番茄下载器</string>
+    <string name="warn_level_1_default">当前设备存在风险，请注意账号安全</string>
+    <string name="warn_level_2_default">当前设备风险等级较高，请及时处理</string>
+    <string name="warn_level_3_default">严重警告：检测到异常使用行为</string>
+    <string name="warn_level_4_default">此设备已被禁用</string>
+    <string name="auth_expired_title">授权已过期</string>
+    <string name="auth_revoked_title">授权已被撤销</string>
+    <string name="btn_reactivate">重新激活</string>
 </resources>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:background="#D50000">
+
+    <TextView
+        android:id="@+id/tv_warning_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="⚠"
+        android:textSize="72sp"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/tv_warning_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_warning_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="@android:color/white"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#80FFFFFF"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/tv_warning_user_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="用户名"
+        android:textSize="12sp"
+        android:textColor="#B0FFFFFF" />
+
+    <TextView
+        android:id="@+id/tv_warning_user"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_warning_id_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ID"
+        android:textSize="12sp"
+        android:textColor="#B0FFFFFF" />
+
+    <TextView
+        android:id="@+id/tv_warning_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_warning_expiry_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="过期日期"
+        android:textSize="12sp"
+        android:textColor="#B0FFFFFF" />
+
+    <TextView
+        android:id="@+id/tv_warning_expiry"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btn_warning_reactivate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="重新激活"
+        android:backgroundTint="@android:color/white"
+        android:textColor="#D50000"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+</LinearLayout>

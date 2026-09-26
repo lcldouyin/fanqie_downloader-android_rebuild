@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="番茄下载器"
+        android:text="@string/app_name"
         android:textSize="28sp"
         android:textStyle="bold"
         android:layout_marginBottom="8dp" />
@@ -19,7 +19,7 @@
         android:layout_height="wrap_content"
         android:text="请输入激活码"
         android:textSize="16sp"
-        android:textColor="#666666"
+        android:textColor="?android:attr/textColorSecondary"
         android:layout_marginBottom="32dp" />
 
     <EditText
@@ -31,7 +31,9 @@
         android:lines="4"
         android:gravity="top"
         android:padding="12dp"
-        android:background="@android:drawable/editbox_background"
+        android:background="@drawable/edittext_bg"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textColorHint="?android:attr/textColorHint"
         android:layout_marginBottom="16dp" />
 
     <Button
@@ -51,7 +53,18 @@
         android:id="@+id/tv_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tv_progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textSize="11sp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:visibility="gone" />
 
 </LinearLayout>
