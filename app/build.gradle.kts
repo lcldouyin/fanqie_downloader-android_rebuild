@@ -8,6 +8,20 @@ android {
 
     ndkVersion = "25.2.9519653"
 
+    val releaseStoreFile = providers.gradleProperty("RELEASE_STORE_FILE").orNull
+    val releaseStorePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
+    val releaseKeyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
+    val releaseKeyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
+
+    signingConfigs {
+        create("release") {
+            storeFile = releaseStoreFile?.let { file(it) }
+            storePassword = releaseStorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.fqdownloader"
         minSdk = 26
@@ -23,6 +37,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -44,5 +59,5 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
 }

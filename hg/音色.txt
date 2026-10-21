@@ -1,0 +1,530 @@
+tone_id
+
+1	甜美少女音
+2	清亮青叔音
+4	成熟大叔音
+5	开朗青年音
+6	温柔淑女音
+29	儒雅大叔音
+74	成熟大叔升级版
+90	配乐版
+91	升级版
+96	升级版
+110	双角色对话
+115	从容淑女音
+
+
+https://api5-normal-sinfonlinea.fqnovel.com/reading/bookapi/directory/all_infos/v?item_ids=7689039773276570136%2C7689040006152716824%2C7689373118409736728%2C7689373209543590424%2C7689746979433218584%2C7689747245725385240%2C7690146168700928536%2C7690176254091215384%2C7690552320899170840%2C7690552568379884056%2C7690863498628170264%2C7690870247720485400%2C7691272909590888984%2C7691578365270049304%2C7691578456324178456%2C7691965873392730648%2C7691966029496336920%2C7692362768074146328%2C7692362889859973656%2C7692786233767887422%2C7692810273060553278%2C7693127462430982681%2C7693171312893641278%2C7693546897704763929%2C7693547640318870041%2C7693890939365900825%2C7693891066851754521%2C7694211940129702425%2C7694222775900193305%2C7694620225613873689%2C7694620364973802009%2C7694945526285877785%2C7694945652727349785%2C7695323405735248409%2C7695323684474454553%2C7695700164081631769%2C7695700413529473561%2C7696054885397037593%2C7696055025612620313%2C7696508039049789977%2C7696508236630852121%2C7696865228490818073%2C7696870907549057561%2C7697185388997116441%2C7697185628806447641%2C7697244922314752574%2C7697533989204001305%2C7697985385174925849%2C7697985492284883481%2C7698316013313458713%2C7698335202455585305&with_virtual_directory=false&with_chapter_abstract=false&without_tone_infos=false&ug_lock_mode=0&directory_source=1&klink_egdi=AAJvGHAw68GQkryt6nTQ7QUqInFsY2PtfZ4Le93B6tQ-1XB2zqXqkCMw&iid=1677223508112569&device_id=1677223508108473&ac=wifi&channel=huawei_1967_64&aid=1967&app_name=novelapp&version_code=73932&version_name=7.3.9.32&device_platform=android&os=android&ssmix=a&device_type=V2362A&device_brand=vivo&language=zh&os_api=32&os_version=12&manifest_version_code=73932&resolution=1600*900&dpi=240&update_version_code=73932&_rticket=1792460690204&&host_abi=arm64-v8a&dragon_device_type=phone&pv_player=73932&compliance_status=0&need_personal_recommend=1&player_so_load=1&is_android_pad_screen=1&rom_version=V417IR+release-keys&cdid=e3f443cd-0757-4147-bab8-2f1568869a31
+
+{
+    "code": 0,
+    "message": "SUCCESS",
+    "data": [
+        {
+            "book_id": "7624173251777809470",
+            "group_id": "7689039773276570136",
+            "item_id": "7689039773276570136",
+            "origin_chapter_title": "",
+            "title": "第401章 团长施压考核，被俘虏了怎么办？",
+            "vid": "has-vid",
+            "tts_info": {
+                "tone": [
+                    {
+                        "id": 90,
+                        "title": "配乐版",
+                        "duration": 717072,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 91,
+                        "title": "升级版",
+                        "duration": 711485,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 74,
+                        "title": "成熟大叔音升级版",
+                        "duration": 710688,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_601_uncle_pro.png",
+                        "parent_tone_id": 4,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 1,
+                        "title": "甜美少女音",
+                        "duration": 742824,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 1,
+                        "tone_gender": 2
+                    },
+                    {
+                        "id": 5,
+                        "title": "开朗青年音",
+                        "duration": 684888,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 2,
+                        "title": "清亮青叔音",
+                        "duration": 677568,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%85%E4%BA%AE%E9%9D%92%E5%8F%94%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 6,
+                        "title": "温柔淑女音",
+                        "duration": 759288,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 6,
+                        "tone_gender": 2
+                    }
+                ]
+            },
+            "order": "401",
+            "version": "51d762361da4b4fc1ae2b44178a7ecf3_1_67e7f3d7244f44e",
+            "real_chapter_order": "",
+            "listen_count": 2782,
+            "status": 0,
+            "first_pass_time": "1790244115",
+            "volume_name": "第一卷：默认",
+            "content_md5": "51d762361da4b4fc1ae2b44178a7ecf3",
+            "chapter_word_number": 3225,
+            "publish_time": "",
+            "chapter_thumb_url": "",
+            "offline_tts_tones": [
+                {
+                    "id": 118,
+                    "title": "成熟大叔离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%88%90%E7%86%9F%E5%A4%A7%E5%8F%94%E9%9F%B3.png"
+                },
+                {
+                    "id": 117,
+                    "title": "甜美少女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 119,
+                    "title": "温柔淑女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 120,
+                    "title": "开朗青年离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png"
+                }
+            ],
+            "show_listen_count": true,
+            "virtual_directory": null,
+            "genre": "0"
+        },
+        {
+            "book_id": "7624173251777809470",
+            "group_id": "7689040006152716824",
+            "item_id": "7689040006152716824",
+            "origin_chapter_title": "",
+            "title": "第402章 老将也能放光彩！",
+            "vid": "has-vid",
+            "tts_info": {
+                "tone": [
+                    {
+                        "id": 90,
+                        "title": "配乐版",
+                        "duration": 822720,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 91,
+                        "title": "升级版",
+                        "duration": 816894,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 74,
+                        "title": "成熟大叔音升级版",
+                        "duration": 803328,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_601_uncle_pro.png",
+                        "parent_tone_id": 4,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 1,
+                        "title": "甜美少女音",
+                        "duration": 858432,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 1,
+                        "tone_gender": 2
+                    },
+                    {
+                        "id": 5,
+                        "title": "开朗青年音",
+                        "duration": 783840,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 2,
+                        "title": "清亮青叔音",
+                        "duration": 782400,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%85%E4%BA%AE%E9%9D%92%E5%8F%94%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 6,
+                        "title": "温柔淑女音",
+                        "duration": 872376,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 6,
+                        "tone_gender": 2
+                    }
+                ]
+            },
+            "order": "402",
+            "version": "59a528e0b5c49d798b109fa21ff4a8a5_1_1038afb683427b6",
+            "real_chapter_order": "",
+            "listen_count": 2802,
+            "status": 0,
+            "first_pass_time": "1790246474",
+            "volume_name": "第一卷：默认",
+            "content_md5": "59a528e0b5c49d798b109fa21ff4a8a5",
+            "chapter_word_number": 3782,
+            "publish_time": "",
+            "chapter_thumb_url": "",
+            "offline_tts_tones": [
+                {
+                    "id": 118,
+                    "title": "成熟大叔离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%88%90%E7%86%9F%E5%A4%A7%E5%8F%94%E9%9F%B3.png"
+                },
+                {
+                    "id": 117,
+                    "title": "甜美少女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 119,
+                    "title": "温柔淑女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 120,
+                    "title": "开朗青年离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png"
+                }
+            ],
+            "show_listen_count": true,
+            "virtual_directory": null,
+            "genre": "0"
+        },
+        {
+            "book_id": "7624173251777809470",
+            "group_id": "7689373118409736728",
+            "item_id": "7689373118409736728",
+            "origin_chapter_title": "",
+            "title": "第403章 黑马杀出，谁是最后赢家？",
+            "vid": "has-vid",
+            "tts_info": {
+                "tone": [
+                    {
+                        "id": 90,
+                        "title": "配乐版",
+                        "duration": 722136,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 91,
+                        "title": "升级版",
+                        "duration": 716522,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 74,
+                        "title": "成熟大叔音升级版",
+                        "duration": 710400,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_601_uncle_pro.png",
+                        "parent_tone_id": 4,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 1,
+                        "title": "甜美少女音",
+                        "duration": 752088,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 1,
+                        "tone_gender": 2
+                    },
+                    {
+                        "id": 5,
+                        "title": "开朗青年音",
+                        "duration": 672984,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 2,
+                        "title": "清亮青叔音",
+                        "duration": 679128,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%85%E4%BA%AE%E9%9D%92%E5%8F%94%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 6,
+                        "title": "温柔淑女音",
+                        "duration": 750792,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 6,
+                        "tone_gender": 2
+                    }
+                ]
+            },
+            "order": "403",
+            "version": "062eeccd83def10a6efa659f0c3236be_1_b4f6a606f545c3f",
+            "real_chapter_order": "",
+            "listen_count": 2782,
+            "status": 0,
+            "first_pass_time": "1790325684",
+            "volume_name": "第一卷：默认",
+            "content_md5": "062eeccd83def10a6efa659f0c3236be",
+            "chapter_word_number": 3278,
+            "publish_time": "",
+            "chapter_thumb_url": "",
+            "offline_tts_tones": [
+                {
+                    "id": 118,
+                    "title": "成熟大叔离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%88%90%E7%86%9F%E5%A4%A7%E5%8F%94%E9%9F%B3.png"
+                },
+                {
+                    "id": 117,
+                    "title": "甜美少女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 119,
+                    "title": "温柔淑女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 120,
+                    "title": "开朗青年离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png"
+                }
+            ],
+            "show_listen_count": true,
+            "virtual_directory": null,
+            "genre": "0"
+        },
+        {
+            "book_id": "7624173251777809470",
+            "group_id": "7689373209543590424",
+            "item_id": "7689373209543590424",
+            "origin_chapter_title": "",
+            "title": "第404章 第五旅旅长不是赵寻安？！",
+            "vid": "has-vid",
+            "tts_info": {
+                "tone": [
+                    {
+                        "id": 90,
+                        "title": "配乐版",
+                        "duration": 723096,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 91,
+                        "title": "升级版",
+                        "duration": 717486,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 74,
+                        "title": "成熟大叔音升级版",
+                        "duration": 691320,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_601_uncle_pro.png",
+                        "parent_tone_id": 4,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 1,
+                        "title": "甜美少女音",
+                        "duration": 726816,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 1,
+                        "tone_gender": 2
+                    },
+                    {
+                        "id": 5,
+                        "title": "开朗青年音",
+                        "duration": 671760,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 2,
+                        "title": "清亮青叔音",
+                        "duration": 664560,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%85%E4%BA%AE%E9%9D%92%E5%8F%94%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 6,
+                        "title": "温柔淑女音",
+                        "duration": 738024,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 6,
+                        "tone_gender": 2
+                    }
+                ]
+            },
+            "order": "404",
+            "version": "6f7b1c383d3892e5718d9d96f147df7a_1_682dff5d58048fb",
+            "real_chapter_order": "",
+            "listen_count": 2806,
+            "status": 0,
+            "first_pass_time": "1790328309",
+            "volume_name": "第一卷：默认",
+            "content_md5": "6f7b1c383d3892e5718d9d96f147df7a",
+            "chapter_word_number": 3154,
+            "publish_time": "",
+            "chapter_thumb_url": "",
+            "offline_tts_tones": [
+                {
+                    "id": 118,
+                    "title": "成熟大叔离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%88%90%E7%86%9F%E5%A4%A7%E5%8F%94%E9%9F%B3.png"
+                },
+                {
+                    "id": 117,
+                    "title": "甜美少女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 119,
+                    "title": "温柔淑女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 120,
+                    "title": "开朗青年离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png"
+                }
+            ],
+            "show_listen_count": true,
+            "virtual_directory": null,
+            "genre": "0"
+        },
+        {
+            "book_id": "7624173251777809470",
+            "group_id": "7689746979433218584",
+            "item_id": "7689746979433218584",
+            "origin_chapter_title": "",
+            "title": "第405章 中将师长变上校司令？李永华接到调令！",
+            "vid": "has-vid",
+            "tts_info": {
+                "tone": [
+                    {
+                        "id": 90,
+                        "title": "配乐版",
+                        "duration": 729312,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 91,
+                        "title": "升级版",
+                        "duration": 723671,
+                        "icon_url": "",
+                        "parent_tone_id": 51,
+                        "tone_gender": 0
+                    },
+                    {
+                        "id": 74,
+                        "title": "成熟大叔音升级版",
+                        "duration": 697464,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_601_uncle_pro.png",
+                        "parent_tone_id": 4,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 1,
+                        "title": "甜美少女音",
+                        "duration": 747984,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 1,
+                        "tone_gender": 2
+                    },
+                    {
+                        "id": 5,
+                        "title": "开朗青年音",
+                        "duration": 695832,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E5%BC%80%E6%9C%97%E9%9D%92%E5%B9%B4%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 2,
+                        "title": "清亮青叔音",
+                        "duration": 683808,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%85%E4%BA%AE%E9%9D%92%E5%8F%94%E9%9F%B3.png",
+                        "parent_tone_id": 2,
+                        "tone_gender": 1
+                    },
+                    {
+                        "id": 6,
+                        "title": "温柔淑女音",
+                        "duration": 768648,
+                        "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%B8%A9%E6%9F%94%E6%B7%91%E5%A5%B3%E9%9F%B3.png",
+                        "parent_tone_id": 6,
+                        "tone_gender": 2
+                    }
+                ]
+            },
+            "order": "405",
+            "version": "7b998b034996fc9b11960b833b74ec00_1_9fe12a98cfd761f",
+            "real_chapter_order": "",
+            "listen_count": 2883,
+            "status": 0,
+            "first_pass_time": "1790413584",
+            "volume_name": "第一卷：默认",
+            "content_md5": "7b998b034996fc9b11960b833b74ec00",
+            "chapter_word_number": 3277,
+            "publish_time": "",
+            "chapter_thumb_url": "",
+            "offline_tts_tones": [
+                {
+                    "id": 118,
+                    "title": "成熟大叔离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E6%88%90%E7%86%9F%E5%A4%A7%E5%8F%94%E9%9F%B3.png"
+                },
+                {
+                    "id": 117,
+                    "title": "甜美少女离线版",
+                    "icon_url": "https://lf3-reading.fqnovelstatic.com/obj/novel-common/img_5%E7%94%9C%E7%BE%8E%E5%B0%91%E5%A5%B3%E9%9F%B3.png"
+                },
+                {
+                    "id": 119,
+                    "title": "温柔淑女离线版",

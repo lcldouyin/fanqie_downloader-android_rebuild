@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="false"
+        android:debuggable="true"
+        android:extractNativeLibs="true"
+        android:label="ARM64 Trace Probe">
+        <activity
+            android:name="com.example.arm64trace.ProbeActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <receiver
+            android:name="com.example.arm64trace.RunReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.arm64trace.RUN_SYNTHETIC_SIGN" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

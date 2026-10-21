@@ -13,15 +13,6 @@ import com.example.fqdownloader.jni.FqSigner;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,8 +20,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -49,11 +38,13 @@ public class DownloadEngine {
     private static final String DIRECTORY_URL = "https://fanqienovel.com/api/reader/directory/detail";
     private static final String SEARCH_URL = "https://novel.snssdk.com/api/novel/channel/homepage/search/search/v1/";
     private static final int GROUP_SIZE = 50;
+    private static final int MAX_BATCH_ATTEMPTS = 3;
     private static final Pattern IMG_PATTERN = Pattern.compile(
         "<img[^>]*\\bsrc\\s*=\\s*['\"]([^'\"]+)['\"][^>]*>", Pattern.CASE_INSENSITIVE);
 
-    private final File outputDir;
+    private final OutputTargetFactory outputTargetFactory;
     private final ProgressListener listener;
+    private final Object previewLock = new Object();
 
     private String FQ_UA = FQ_UA_BASE;
     private String FQ_COOKIE = "store-region=cn-zj; store-region-src=did; install_id=933935730456617";
@@ -68,15 +59,263 @@ public class DownloadEngine {
         void onProgress(int current, int total, String batchInfo);
         void onError(String error);
         void onComplete(String outputPath);
+        void onSearchResults(List<BookInfo> results);
     }
 
-    public DownloadEngine(File outputDir, ProgressListener listener) {
-        this.outputDir = outputDir;
+    public interface OutputTarget {
+        OutputStream openStream() throws Exception;
+        void publish() throws Exception;
+        void abort() throws Exception;
+        String getDisplayPath();
+    }
+
+    public interface OutputTargetFactory {
+        OutputTarget create(String fileName) throws Exception;
+    }
+
+    public static final class ChapterPreview {
+        public final Chapter chapter;
+        public final String content;
+
+        public ChapterPreview(Chapter chapter, String content) {
+            this.chapter = chapter;
+            this.content = content;
+        }
+    }
+
+    public interface ChapterPageCallback {
+        void onLoaded(List<ChapterPreview> chapters, int totalChapters, int startIndex);
+        void onError(Exception error);
+    }
+
+    public interface ChapterListCallback {
+        void onLoaded(List<Chapter> chapters);
+        void onError(Exception error);
+    }
+
+    public interface AudioUrlCallback {
+        void onLoaded(String audioUrl);
+        void onError(Exception error);
+    }
+
+    public interface AudioUrlsCallback {
+        void onLoaded(Map<String, String> audioUrls);
+        void onError(Exception error);
+    }
+
+    public DownloadEngine(OutputTargetFactory outputTargetFactory, ProgressListener listener) {
+        this.outputTargetFactory = outputTargetFactory;
         this.listener = listener;
+    }
+
+    public void loadChapterAudioUrl(String chapterId, AudioUrlCallback callback) {
+        List<String> chapterIds = new ArrayList<>(1);
+        chapterIds.add(chapterId);
+        loadChapterAudioUrls(chapterIds, new AudioUrlsCallback() {
+            @Override
+            public void onLoaded(Map<String, String> audioUrls) {
+                String audioUrl = audioUrls.get(chapterId);
+                if (audioUrl == null || audioUrl.trim().isEmpty()) {
+                    callback.onError(new IOException("未获取到该章节的音频地址"));
+                } else {
+                    callback.onLoaded(audioUrl);
+                }
+            }
+
+            @Override
+            public void onError(Exception error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void loadChapterAudioUrls(List<String> chapterIds, AudioUrlsCallback callback) {
+        new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            try {
+                if (chapterIds == null || chapterIds.isEmpty()) {
+                    throw new IOException("章节 ID 不能为空");
+                }
+                List<String> validChapterIds = new ArrayList<>(chapterIds.size());
+                for (String chapterId : chapterIds) {
+                    if (chapterId == null || chapterId.trim().isEmpty()) {
+                        throw new IOException("章节 ID 不能为空");
+                    }
+                    validChapterIds.add(chapterId.trim());
+                }
+                String encodedChapterIds = URLEncoder.encode(
+                        String.join(",", validChapterIds), StandardCharsets.UTF_8.name());
+                String url = "https://api5-normal-sinfonlinea.fqnovel.com"
+                        + "/reading/reader/audio/playinfo/?tone_id=1&item_ids="
+                        + encodedChapterIds + "&pv_player=-1&aid=1967";
+                String signature = getFqSig(url);
+                if (signature == null || signature.trim().isEmpty()) {
+                    throw new IOException("音频接口签名生成失败");
+                }
+
+                byte[] raw = fqHttpGet(url, signature);
+                if (raw == null || raw.length == 0) {
+                    throw new IOException("音频接口返回空响应");
+                }
+                String response = tryGunzip(raw);
+                if (response == null) response = new String(raw, StandardCharsets.UTF_8);
+
+                JsonValue parsed;
+                try {
+                    parsed = new JsonParser(response).parse();
+                } catch (Exception error) {
+                    throw new IOException("音频接口响应解析失败", error);
+                }
+                if (!(parsed instanceof JsonValue.JsonObject root)) {
+                    throw new IOException("音频接口响应格式无效");
+                }
+                int code = root.integer("code", Integer.MIN_VALUE);
+                if (code != 0) {
+                    throw new IOException("音频接口错误（code=" + code + "）："
+                            + root.str("message", "未知错误"));
+                }
+                Map<String, String> audioUrls = new LinkedHashMap<>();
+                List<JsonValue> audioItems = root.arr("data");
+                for (JsonValue value : audioItems) {
+                    if (!(value instanceof JsonValue.JsonObject audioItem)) continue;
+                    String itemId = audioItem.str("item_id");
+                    String audioUrl = audioItem.str("main_url");
+                    if (validChapterIds.contains(itemId)
+                            && audioUrl != null && !audioUrl.trim().isEmpty()) {
+                        audioUrls.put(itemId, audioUrl);
+                    }
+                }
+                callback.onLoaded(audioUrls);
+            } catch (Exception error) {
+                callback.onError(error);
+            }
+        }, "chapter-audio-urls").start();
+    }
+
+    private String previewBookId;
+    private List<Chapter> previewChapters = new ArrayList<>();
+    private String previewDecryptBookId;
+
+    public void loadChapters(String bookId, ChapterListCallback callback) {
+        new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            synchronized (previewLock) {
+                try {
+                    if (bookId == null || bookId.trim().isEmpty()) {
+                        throw new IOException("Book ID 不能为空");
+                    }
+                    if (!bookId.equals(previewBookId) || previewChapters.isEmpty()) {
+                        List<Chapter> chapters = fetchChaptersWithFallback(bookId);
+                        if (chapters.isEmpty()) {
+                            throw new IOException("获取目录失败");
+                        }
+                        previewChapters = chapters;
+                        previewBookId = bookId;
+                        previewDecryptBookId = null;
+                    }
+                    callback.onLoaded(new ArrayList<>(previewChapters));
+                } catch (Exception e) {
+                    callback.onError(e);
+                }
+            }
+        }, "chapter-list").start();
+    }
+
+    public void loadChapterPage(String bookId, int pageNumber, int pageSize,
+                                ChapterPageCallback callback) {
+        if (pageNumber < 0 || pageSize <= 0) {
+            callback.onError(new IOException("章节页码无效"));
+            return;
+        }
+        long startIndex = (long) pageNumber * pageSize;
+        if (startIndex > Integer.MAX_VALUE) {
+            callback.onError(new IOException("章节页码无效"));
+            return;
+        }
+        loadChapterPageStartingAt(bookId, (int) startIndex, pageSize, callback);
+    }
+
+    public void loadChapterPageStartingAt(String bookId, int startIndex, int pageSize,
+                                          ChapterPageCallback callback) {
+        loadChapterPage(bookId, startIndex, null, pageSize, callback);
+    }
+
+    public void loadChapterPageStartingAtItem(String bookId, String itemId, int pageSize,
+                                              ChapterPageCallback callback) {
+        if (itemId == null || itemId.trim().isEmpty()) {
+            callback.onError(new IOException("章节信息无效"));
+            return;
+        }
+        loadChapterPage(bookId, -1, itemId, pageSize, callback);
+    }
+
+    private void loadChapterPage(String bookId, int requestedStartIndex, String startingItemId,
+                                 int pageSize, ChapterPageCallback callback) {
+        new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            synchronized (previewLock) {
+                try {
+                    if (bookId == null || bookId.trim().isEmpty()) {
+                        throw new IOException("Book ID 不能为空");
+                    }
+                    if ((startingItemId == null && requestedStartIndex < 0) || pageSize <= 0) {
+                        throw new IOException("章节页码无效");
+                    }
+
+                    if (!bookId.equals(previewBookId) || previewChapters.isEmpty()) {
+                        List<Chapter> chapters = fetchChaptersWithFallback(bookId);
+                        if (chapters.isEmpty()) {
+                            throw new IOException("获取目录失败");
+                        }
+                        previewChapters = chapters;
+                        previewBookId = bookId;
+                        previewDecryptBookId = null;
+                    }
+                    int startIndex = requestedStartIndex;
+                    if (startingItemId != null) {
+                        startIndex = -1;
+                        for (int i = 0; i < previewChapters.size(); i++) {
+                            if (startingItemId.equals(previewChapters.get(i).itemId)) {
+                                startIndex = i;
+                                break;
+                            }
+                        }
+                        if (startIndex < 0) {
+                            throw new IOException("所选章节已不在目录中，请返回目录重新选择");
+                        }
+                    }
+                    if (startIndex >= previewChapters.size()) {
+                        throw new IOException("请求的章节页超出目录范围");
+                    }
+                    int pageEnd = Math.min(startIndex + pageSize, previewChapters.size());
+                    List<Chapter> pageChapters = previewChapters.subList(startIndex, pageEnd);
+
+                    if (!bookId.equals(previewDecryptBookId)) {
+                        decryptKey = fetchDecryptKey();
+                        previewDecryptBookId = bookId;
+                    }
+
+                    String itemIds = pageChapters.stream()
+                            .map(chapter -> chapter.itemId)
+                            .collect(java.util.stream.Collectors.joining(","));
+                    Map<String, String> contents = fetchBatchContent(itemIds, bookId);
+                    List<ChapterPreview> page = new ArrayList<>(pageChapters.size());
+                    for (Chapter chapter : pageChapters) {
+                        String raw = contents.get(chapter.itemId);
+                        String content = raw == null || raw.trim().isEmpty() ? "" : extractBlkText(raw);
+                        page.add(new ChapterPreview(chapter, content));
+                    }
+                    callback.onLoaded(page, previewChapters.size(), startIndex);
+                } catch (Exception e) {
+                    callback.onError(e);
+                }
+            }
+        }, "chapter-preview").start();
     }
 
     public void search(String keyword) {
         new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
             try {
                 String url = SEARCH_URL + "?q=" + URLEncoder.encode(keyword, "UTF-8") + "&aid=1967";
                 var json = fetchJson(url);
@@ -85,25 +324,16 @@ public class DownloadEngine {
 
                 var results = retData.list().stream()
                         .map(v -> new BookInfo(
-                                optStr(v, "book_id"),
+                                optStr(v, "book_id").trim(),
                                 optStr(v, "title"),
                                 optStr(v, "author"),
                                 optStr(v, "category"),
                                 optStr(v, "score", "N/A"),
                                 optStr(v, "abstract")))
+                        .filter(book -> !book.bookId.trim().isEmpty())
                         .collect(java.util.stream.Collectors.toList());
 
-                if (results.isEmpty()) {
-                    listener.onLog("未找到相关书籍。");
-                    return;
-                }
-                listener.onLog("共找到 " + results.size() + " 本小说：\n");
-                StringBuilder sb = new StringBuilder();
-                for (var r : results) {
-                    sb.append(String.format("ID: %s\n书名: %s\n作者: %s\n评分: %s\n\n",
-                            r.bookId, r.title, r.author, r.score));
-                }
-                listener.onLog(sb.toString());
+                listener.onSearchResults(results);
             } catch (Exception e) {
                 listener.onError("搜索失败: " + e);
             }
@@ -112,10 +342,9 @@ public class DownloadEngine {
 
     public void download(String bookId, int start, int end, boolean outputTxt) {
         new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            OutputTarget outputTarget = null;
             try {
-                var outDir = java.nio.file.Paths.get(outputDir.getAbsolutePath(), bookId);
-                Files.createDirectories(outDir);
-
                 listener.onLog("获取书籍信息...");
                 String bookName = fetchBookNameFromPage(bookId);
                 if (bookName.trim().isEmpty()) bookName = bookId;
@@ -152,11 +381,23 @@ public class DownloadEngine {
                     int gEnd = Math.min(g + GROUP_SIZE, totalChapters);
                     List<Integer> failed = new ArrayList<>();
                     for (int j = g; j < gEnd; j++) failed.add(j);
-                    listener.onLog("批次 " + ((g / GROUP_SIZE) + 1) + "/" + ((totalChapters + GROUP_SIZE - 1) / GROUP_SIZE));
+                    int totalBatches = (totalChapters + GROUP_SIZE - 1) / GROUP_SIZE;
+                    int currentBatch = (g / GROUP_SIZE) + 1;
+                    listener.onLog("批次 " + currentBatch + "/" + totalBatches);
+                    Exception lastBatchError = null;
 
-                    while (!failed.isEmpty()) {
+                    for (int attempt = 1; attempt <= MAX_BATCH_ATTEMPTS && !failed.isEmpty(); attempt++) {
+                        if (attempt > 1) {
+                            listener.onLog("重试批次 " + currentBatch + "（" + attempt
+                                    + "/" + MAX_BATCH_ATTEMPTS + "）");
+                            try {
+                                Thread.sleep(2000);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                throw new IOException("下载已中断", e);
+                            }
+                        }
                         var ids = failed.stream().map(i -> selected.get(i).itemId).collect(java.util.stream.Collectors.joining(","));
-                        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
                         try {
                             var bc = fetchBatchContent(ids, bookId);
                             var iter = failed.iterator();
@@ -170,22 +411,41 @@ public class DownloadEngine {
                                 iter.remove();
                             }
                         } catch (Exception e) {
+                            lastBatchError = e;
                             listener.onLog("批次失败: " + e + "，" + failed.size() + " 章待重试");
                         }
-                        int totalBatches = (totalChapters + GROUP_SIZE - 1) / GROUP_SIZE;
-                        int currentBatch = (g / GROUP_SIZE) + 1;
-                        listener.onProgress(currentBatch, totalBatches,
-                                "批次 " + currentBatch + "/" + totalBatches);
+                    }
+                    listener.onProgress(currentBatch, totalBatches,
+                            "批次 " + currentBatch + "/" + totalBatches);
+                    if (!failed.isEmpty()) {
+                        String failedChapters = failed.stream()
+                                .map(i -> selected.get(i).title)
+                                .collect(java.util.stream.Collectors.joining("、"));
+                        IOException error = new IOException("章节内容连续重试 "
+                                + MAX_BATCH_ATTEMPTS + " 次仍未获取成功: " + failedChapters);
+                        if (lastBatchError != null) error.addSuppressed(lastBatchError);
+                        throw error;
                     }
                 }
 
                 var ext = outputTxt ? ".txt" : ".epub";
-                var outputPath = outDir.resolve(bookId + "_" + startIdx + "-" + endIdx + ext);
-                generateOutput(outputPath, bookId, bookName, selected, totalChapters, outputTxt,
+                String safeBookId = bookId.replaceAll("[^A-Za-z0-9._-]", "_");
+                String fileName = safeBookId + "_" + startIdx + "-" + endIdx + ext;
+                outputTarget = outputTargetFactory.create(fileName);
+                generateOutput(outputTarget.openStream(), bookId, bookName, selected, totalChapters, outputTxt,
                               chapterContents, imageCache, coverImage);
-                listener.onComplete(outputPath.toAbsolutePath().toString());
+                outputTarget.publish();
+                listener.onComplete(outputTarget.getDisplayPath());
 
             } catch (Exception e) {
+                if (outputTarget != null) {
+                    try {
+                        outputTarget.abort();
+                    } catch (Exception cleanupError) {
+                        e.addSuppressed(cleanupError);
+                        Log.e(TAG, "Failed to remove incomplete output", cleanupError);
+                    }
+                }
                 listener.onError("下载失败: " + e);
                 Log.e(TAG, "download error", e);
             }
@@ -510,7 +770,7 @@ public class DownloadEngine {
 
     // ── Output ──
 
-    private void generateOutput(Path outputPath, String bookId, String bookName,
+    private void generateOutput(OutputStream output, String bookId, String bookName,
                                  List<Chapter> selected, int totalChapters, boolean outputTxt,
                                  ConcurrentHashMap<Integer, String> chapterContents,
                                  ConcurrentHashMap<String, ImageInfo> imageCache,
@@ -526,11 +786,13 @@ public class DownloadEngine {
                     sb.append(selected.get(i).title).append("\n\n[获取失败]\n\n\n");
                 }
             }
-            Files.write(outputPath, sb.toString().getBytes(StandardCharsets.UTF_8));
+            try (output) {
+                output.write(sb.toString().getBytes(StandardCharsets.UTF_8));
+            }
         } else {
             listener.onLog("\n生成 EPUB...");
-            try (var fos = Files.newOutputStream(outputPath)) {
-                EpubGenerator.generate(fos, bookId, bookName, selected, totalChapters,
+            try (output) {
+                EpubGenerator.generate(output, bookId, bookName, selected, totalChapters,
                                        chapterContents, imageCache, coverImage);
             }
         }

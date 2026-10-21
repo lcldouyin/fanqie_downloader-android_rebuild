@@ -5,7 +5,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -26,8 +27,18 @@
         </activity>
 
         <activity
-            android:name=".security.ActivationActivity"
+            android:name=".ChapterListActivity"
             android:exported="false"
-            android:theme="@style/Theme.FqDownloader" />
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ChapterPreviewActivity"
+            android:exported="false"
+            android:parentActivityName=".ChapterListActivity" />
+
+        <service
+            android:name=".AudioPlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>
 </manifest>

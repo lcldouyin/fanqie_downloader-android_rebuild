@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tomato">#FFE08A78</color>
+    <color name="tomato_dark">#FFB8432F</color>
+    <color name="leaf">#FF9BC7AE</color>
+    <color name="leaf_dark">#FF6D9B7F</color>
+    <color name="screen_background">#FF171514</color>
+    <color name="card_stroke">#FF39312D</color>
+    <color name="log_background">#FF211D1A</color>
+    <color name="result_card_background">#FF211D1A</color>
+    <color name="result_title">#FFF4EAE4</color>
+    <color name="result_metadata">#FFBFB2AA</color>
+    <color name="chapter_title">#FFFFAA96</color>
+    <color name="progress_track">#FF49403A</color>
+</resources>

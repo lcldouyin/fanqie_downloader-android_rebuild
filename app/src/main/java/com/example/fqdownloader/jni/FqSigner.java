@@ -8,6 +8,7 @@ import com.bytedance.mobsec.metasec.ml.MS;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -46,27 +47,47 @@ public class FqSigner {
             String entryName = "lib/" + abi + "/" + soName;
 
             File outDir = new File(context.getFilesDir(), "lib");
-            outDir.mkdirs();
-            File outFile = new File(outDir, soName);
-            if (outFile.exists()) {
-                return outFile.getAbsolutePath();
+            if (!outDir.isDirectory() && !outDir.mkdirs()) {
+                Log.e(TAG, "Failed to create native library cache directory");
+                return null;
             }
-
+            File outFile = new File(outDir, soName);
+            File tempFile = new File(outDir, soName + ".tmp");
             try (ZipFile zip = new ZipFile(apkPath)) {
                 ZipEntry entry = zip.getEntry(entryName);
                 if (entry == null) {
                     Log.w(TAG, "APK entry not found: " + entryName);
                     return null;
                 }
+                if (outFile.isFile() && outFile.length() > 0
+                        && outFile.length() == entry.getSize()) {
+                    return outFile.getAbsolutePath();
+                }
+
                 try (InputStream is = zip.getInputStream(entry);
-                     FileOutputStream fos = new FileOutputStream(outFile)) {
+                     FileOutputStream fos = new FileOutputStream(tempFile)) {
                     byte[] buf = new byte[8192];
                     int n;
                     while ((n = is.read(buf)) != -1) fos.write(buf, 0, n);
+                    fos.getFD().sync();
+                }
+                if (tempFile.length() == 0
+                        || (entry.getSize() >= 0 && tempFile.length() != entry.getSize())) {
+                    throw new IOException("Extracted library size does not match APK entry");
+                }
+                if (outFile.exists() && !outFile.delete()) {
+                    throw new IOException("Failed to replace cached native library");
+                }
+                if (!tempFile.renameTo(outFile)) {
+                    throw new IOException("Failed to publish extracted native library");
+                }
+                outFile.setExecutable(true);
+                return outFile.getAbsolutePath();
+            } finally {
+                if (tempFile.exists() && !tempFile.delete()) {
+                    Log.w(TAG, "Failed to remove temporary native library file");
                 }
             }
-            outFile.setExecutable(true);
-            return outFile.getAbsolutePath();
         } catch (Exception e) {
             Log.e(TAG, "extractSoFromApk failed", e);
             return null;
