@@ -14,7 +14,6 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
-import com.example.fqdownloader.jni.FqSigner;
 import com.example.fqdownloader.model.BookInfo;
 import com.example.fqdownloader.ui.EdgeToEdgeHelper;
 import com.google.android.material.card.MaterialCardView;
@@ -128,8 +127,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initEngine() {
-        FqSigner.init(this);
-
         engine = new DownloadEngine(null, new DownloadEngine.ProgressListener() {
             @Override
             public void onLog(String message) {}

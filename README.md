@@ -52,6 +52,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ## 技术细节
 
 - 核心签名 SO：`libmetasec_ml.so`（来自番茄小说 App v6.8.1.32）
+- 签名库在应用启动时由后台线程初始化；签名调用与原生库初始化由进程级锁串行保护
+- APK 中的签名 SO 会按 SHA-256 校验（`ebfdfa5539e18fa18cc675293a1dc623126e259b96e0a30b1fca9d52ad674a78`），校验通过后才缓存和加载
 - JNI 桥接：`fqsigner.cpp` 通过 `dlopen` + `/proc/self/maps` 解析 SO 基址，调用偏移 `0x168c80` 的签名函数
 - API 兼容：仅使用 Android API 26 可用接口，无 Java 9+ API 依赖
 

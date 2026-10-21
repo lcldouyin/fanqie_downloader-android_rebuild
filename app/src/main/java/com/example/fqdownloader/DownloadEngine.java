@@ -459,38 +459,75 @@ public class DownloadEngine {
         String encContent = crypto.newRegisterKeyContent(deviceId, "0");
         String url = FQ_BASE_URL + "/reading/crypt/registerkey" + buildFqQS();
         String sig = getFqSig(url);
+        if (sig == null || sig.trim().isEmpty()) {
+            String signerError = FqSigner.getLastError();
+            throw new IOException("registerkey 签名生成失败"
+                    + (signerError == null || signerError.trim().isEmpty()
+                            ? "" : ": " + signerError));
+        }
         byte[] raw = fqHttpPost(url, sig, ("{\"content\":\"" + encContent + "\",\"keyver\":1}").getBytes(StandardCharsets.UTF_8));
         if (raw == null) throw new IOException("registerkey 返回空");
         String resp = tryGunzip(raw);
         if (resp == null) resp = new String(raw, StandardCharsets.UTF_8);
+
+        JsonValue parsed;
         try {
-            var parsed = new JsonParser(resp).parse();
-            if (parsed instanceof JsonValue.JsonObject root) {
-                int code = root.integer("code", 0);
-                if (code != 0) {
-                    String message = root.str("message", "unknown error");
-                    switch (code) {
-                        case 1 -> throw new IOException("SYSTEM: 系统错误");
-                        case 2 -> throw new IOException("INVALID_REQ: 无效请求");
-                        case 100 -> throw new IOException("FAST_REJECT: 请求被快速拒绝");
-                        case 110 -> throw new IOException("ILLEGAL_ACCESS: 设备可能被封禁");
-                        case 500000 -> throw new IOException("KEY_TOO_OLD: 密钥过期");
-                        case 500001 -> throw new IOException("ESCAPE_KEY: 逃逸密钥");
-                        case 500002 -> throw new IOException("VERIFY_FAIL: 验证失败");
-                        case 500003 -> { return ""; }
-                        default -> throw new IOException("registerkey error: " + message + " (code=" + code + ")");
-                    }
-                }
+            parsed = new JsonParser(resp).parse();
+        } catch (Exception error) {
+            throw new IOException("registerkey 响应不是有效 JSON", error);
+        }
+        if (!(parsed instanceof JsonValue.JsonObject root)) {
+            throw new IOException("registerkey 响应格式无效");
+        }
+
+        int code = parseResponseCode(root);
+        String message = root.str("message", root.str("msg", "未知错误"));
+        if (code != Integer.MIN_VALUE && code != 0) {
+            switch (code) {
+                case 1 -> throw new IOException("SYSTEM: 系统错误");
+                case 2 -> throw new IOException("INVALID_REQ: 无效请求");
+                case 100 -> throw new IOException("FAST_REJECT: 请求被快速拒绝");
+                case 110 -> throw new IOException("ILLEGAL_ACCESS: 设备可能被封禁");
+                case 500000 -> throw new IOException("KEY_TOO_OLD: 密钥过期");
+                case 500001 -> throw new IOException("ESCAPE_KEY: 逃逸密钥");
+                case 500002 -> throw new IOException("VERIFY_FAIL: 验证失败");
+                case 500003 -> { return ""; }
+                default -> throw new IOException(
+                        "registerkey error: " + message + " (code=" + code + ")");
             }
-        } catch (IOException e) { throw e; } catch (Exception ignored) {}
-        int p = resp.indexOf("\"key\"");
-        if (p < 0) throw new IOException("registerkey 响应无key字段");
-        int c = resp.indexOf(':', p + 5);
-        int sq = resp.indexOf('"', c + 1), eq = resp.indexOf('"', sq + 1);
-        if (sq < 0 || eq <= sq) throw new IOException("key格式错误");
-        String encryptedKey = resp.substring(sq + 1, eq);
+        }
+
+        String encryptedKey = root.str("key");
+        JsonValue data = root.get("data");
+        if ((encryptedKey == null || encryptedKey.isEmpty())
+                && data instanceof JsonValue.JsonObject dataObject) {
+            encryptedKey = dataObject.str("key");
+        }
+        if (encryptedKey == null || encryptedKey.trim().isEmpty()) {
+            StringBuilder detail = new StringBuilder("registerkey 响应缺少 key 字段");
+            if (code != Integer.MIN_VALUE) detail.append(" (code=").append(code);
+            if (!"未知错误".equals(message)) {
+                detail.append(code == Integer.MIN_VALUE ? " (" : ", ")
+                        .append("message=").append(message);
+            }
+            if (code != Integer.MIN_VALUE || !"未知错误".equals(message)) detail.append(')');
+            throw new IOException(detail.toString());
+        }
         String realKey = FqCrypto.getRealKey(encryptedKey);
         return realKey.length() > 32 ? realKey.substring(0, 32) : realKey;
+    }
+
+    private int parseResponseCode(JsonValue.JsonObject root) {
+        JsonValue value = root.get("code");
+        if (value instanceof JsonValue.JsonNumber number) return number.intValue();
+        if (value instanceof JsonValue.JsonString string) {
+            try {
+                return Integer.parseInt(string.value());
+            } catch (NumberFormatException ignored) {
+                return Integer.MIN_VALUE;
+            }
+        }
+        return Integer.MIN_VALUE;
     }
 
     private Map<String, String> fetchBatchContent(String itemIds, String bookId) throws Exception {
@@ -583,26 +620,36 @@ public class DownloadEngine {
 
     private byte[] fqHttpPost(String url, String sig, byte[] body) throws Exception {
         HttpURLConnection c = openFqConn(url);
-        c.setRequestMethod("POST"); c.setConnectTimeout(15000); c.setReadTimeout(30000);
-        c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/json");
-        if (sig != null && !sig.isEmpty()) {
-            String[] lines = sig.split("\n");
-            for (int i = 0; i < lines.length - 1; i += 2)
-                c.setRequestProperty(lines[i].trim(), lines[i + 1].trim());
+        try {
+            c.setRequestMethod("POST"); c.setConnectTimeout(15000); c.setReadTimeout(30000);
+            c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/json");
+            if (sig != null && !sig.isEmpty()) {
+                String[] lines = sig.split("\n");
+                for (int i = 0; i < lines.length - 1; i += 2)
+                    c.setRequestProperty(lines[i].trim(), lines[i + 1].trim());
+            }
+            for (var e : buildFqHeaders().entrySet()) {
+                if (!e.getKey().equals("Content-Type"))
+                    c.setRequestProperty(e.getKey(), e.getValue());
+            }
+            try (OutputStream output = c.getOutputStream()) {
+                output.write(body);
+                output.flush();
+            }
+            int code = c.getResponseCode();
+            listener.onLog("  [HTTP] POST " + url.substring(0, Math.min(120, url.length())) + " → " + code);
+            if (code >= 400) throw new IOException("registerkey HTTP 错误 (status=" + code + ")");
+            InputStream is = c.getInputStream();
+            if (is == null) return null;
+            try (InputStream input = is; ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = input.read(buf)) != -1) bos.write(buf, 0, n);
+                return bos.toByteArray();
+            }
+        } finally {
+            c.disconnect();
         }
-        for (var e : buildFqHeaders().entrySet()) {
-            if (!e.getKey().equals("Content-Type"))
-                c.setRequestProperty(e.getKey(), e.getValue());
-        }
-        c.getOutputStream().write(body); c.getOutputStream().flush();
-        int code = c.getResponseCode();
-        listener.onLog("  [HTTP] POST " + url.substring(0, Math.min(120, url.length())) + " → " + code);
-        InputStream is = code >= 400 ? c.getErrorStream() : c.getInputStream();
-        if (is == null) return null;
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        byte[] buf = new byte[8192]; int n;
-        while ((n = is.read(buf)) != -1) bos.write(buf, 0, n);
-        is.close(); return bos.toByteArray();
     }
 
     private HttpURLConnection openFqConn(String url) throws Exception {

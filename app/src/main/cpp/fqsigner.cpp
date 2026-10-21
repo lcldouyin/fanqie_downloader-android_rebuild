@@ -3,8 +3,9 @@
 #include <android/log.h>
 #include <cstring>
 #include <cstdio>
-#include <cstdlib>
 #include <cstdint>
+#include <mutex>
+#include <string>
 
 #define LOG_TAG "FqSigner"
 #define SIG_FUNC_OFFSET 0x168c80
@@ -16,6 +17,9 @@ typedef jint (*jni_onload_t)(JavaVM*, void*);
 static JavaVM* g_vm = nullptr;
 static void* g_soHandle = nullptr;
 static sig_func_t g_sigFunc = nullptr;
+static bool g_loadFailed = false;
+static std::string g_loadError;
+static std::mutex g_signerMutex;
 
 static uintptr_t findImageBase(const char* libraryName) {
     FILE* maps = fopen("/proc/self/maps", "r");
@@ -24,10 +28,19 @@ static uintptr_t findImageBase(const char* libraryName) {
         return 0;
     }
 
+    const char* fileName = strrchr(libraryName, '/');
+    fileName = fileName ? fileName + 1 : libraryName;
     char line[1024];
     uintptr_t base = 0;
     while (fgets(line, sizeof(line), maps)) {
-        if (!strstr(line, libraryName)) continue;
+        const char* path = strstr(line, fileName);
+        if (!path) continue;
+        size_t fileNameLength = strlen(fileName);
+        if (path[fileNameLength] != '\0'
+                && path[fileNameLength] != ' '
+                && path[fileNameLength] != '\n') {
+            continue;
+        }
 
         unsigned long long start = 0;
         unsigned long long fileOffset = 0;
@@ -35,7 +48,6 @@ static uintptr_t findImageBase(const char* libraryName) {
             continue;
         }
         if (fileOffset == 0) {
-            // This ELF's first PT_LOAD has p_offset == p_vaddr == 0.
             base = static_cast<uintptr_t>(start);
             break;
         }
@@ -44,7 +56,8 @@ static uintptr_t findImageBase(const char* libraryName) {
 
     if (!base) {
         __android_log_print(ANDROID_LOG_ERROR, LOG_TAG,
-                            "could not find offset-zero mapping for %s", libraryName);
+                            "could not find offset-zero mapping for %s (matched filename %s)",
+                            libraryName, fileName);
     }
     return base;
 }
@@ -55,79 +68,105 @@ extern "C" jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     return JNI_VERSION_1_6;
 }
 
-static void ensureLoaded(JNIEnv* env, const char* libPath) {
-    if (g_soHandle) return;
+static bool ensureLoaded(const char* libPath) {
+    if (g_sigFunc) return true;
+    if (g_loadFailed) return false;
 
     __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "dlopen: %s", libPath);
     g_soHandle = dlopen(libPath, RTLD_NOW | RTLD_GLOBAL);
     if (!g_soHandle) {
-        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "dlopen failed: %s", dlerror());
-        return;
+        const char* error = dlerror();
+        g_loadError = std::string("dlopen failed: ")
+                + (error ? error : "unknown linker error");
+        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s", g_loadError.c_str());
+        return false;
     }
 
-    uintptr_t base = findImageBase("libmetasec_ml.so");
-    if (!base) return;
-
-    // Call the SO's JNI_OnLoad to initialize internal state
-    jni_onload_t soJniOnLoad = (jni_onload_t)dlsym(g_soHandle, "JNI_OnLoad");
-    if (soJniOnLoad) {
-        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Calling SO JNI_OnLoad at %p", soJniOnLoad);
-        jint ver = soJniOnLoad(g_vm, nullptr);
-        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "SO JNI_OnLoad returned %d", ver);
-    } else {
-        __android_log_print(ANDROID_LOG_WARN, LOG_TAG, "JNI_OnLoad not exported, trying offset 0x%x", JNI_ONLOAD_OFFSET);
-        soJniOnLoad = (jni_onload_t)(base + JNI_ONLOAD_OFFSET);
-        __android_log_print(ANDROID_LOG_INFO, LOG_TAG,
-                            "Calling SO JNI_OnLoad at %p (base+offset)", soJniOnLoad);
-        jint ver = soJniOnLoad(g_vm, nullptr);
-        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "SO JNI_OnLoad returned %d", ver);
+    uintptr_t base = findImageBase(libPath);
+    if (!base) {
+        g_loadError = "Library loaded but its offset-zero mapping was not found";
+        dlclose(g_soHandle);
+        g_soHandle = nullptr;
+        return false;
     }
 
-    // Resolve the signature function
-    g_sigFunc = (sig_func_t)(base + SIG_FUNC_OFFSET);
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "sig func at %p (base=%p, offset=0x%x)",
-                        g_sigFunc, (void*)base, SIG_FUNC_OFFSET);
-
-    if (!g_sigFunc) {
-        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "could not resolve sig func");
+    jni_onload_t soJniOnLoad =
+            reinterpret_cast<jni_onload_t>(dlsym(g_soHandle, "JNI_OnLoad"));
+    if (!soJniOnLoad) {
+        __android_log_print(ANDROID_LOG_WARN, LOG_TAG,
+                            "JNI_OnLoad not exported, using offset 0x%x", JNI_ONLOAD_OFFSET);
+        soJniOnLoad = reinterpret_cast<jni_onload_t>(base + JNI_ONLOAD_OFFSET);
     }
+
+    if (!g_vm) {
+        g_loadError = "JavaVM is not available";
+        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s", g_loadError.c_str());
+        g_loadFailed = true;
+        return false;
+    }
+
+    jint jniVersion = soJniOnLoad(g_vm, nullptr);
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG,
+                        "libmetasec_ml.so JNI_OnLoad returned 0x%x", jniVersion);
+    if (jniVersion == JNI_ERR) {
+        __android_log_print(ANDROID_LOG_WARN, LOG_TAG,
+                            "JNI_OnLoad returned JNI_ERR; continuing as in the reference implementation");
+    }
+
+    g_sigFunc = reinterpret_cast<sig_func_t>(base + SIG_FUNC_OFFSET);
+    __android_log_print(ANDROID_LOG_INFO, LOG_TAG,
+                        "sig func at %p (base=%p, offset=0x%x)",
+                        reinterpret_cast<void*>(g_sigFunc),
+                        reinterpret_cast<void*>(base), SIG_FUNC_OFFSET);
+    return true;
+}
+
+static void throwIllegalState(JNIEnv* env, const char* message) {
+    jclass exceptionClass = env->FindClass("java/lang/IllegalStateException");
+    if (exceptionClass) env->ThrowNew(exceptionClass, message);
 }
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_fqdownloader_jni_FqSigner_nativeGenerateSignature(
-    JNIEnv* env, jclass clazz, jstring jurl, jstring jheaders, jstring jLibPath) {
-
+        JNIEnv* env, jclass clazz, jstring jurl, jstring jheaders, jstring jLibPath) {
+    std::lock_guard<std::mutex> lock(g_signerMutex);
     if (!jurl || !jheaders || !jLibPath) {
-        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "null argument");
+        throwIllegalState(env, "Signature arguments must not be null");
         return nullptr;
     }
 
     const char* url = env->GetStringUTFChars(jurl, nullptr);
+    if (!url) return nullptr;
     const char* headers = env->GetStringUTFChars(jheaders, nullptr);
+    if (!headers) {
+        env->ReleaseStringUTFChars(jurl, url);
+        return nullptr;
+    }
     const char* libPath = env->GetStringUTFChars(jLibPath, nullptr);
-
-    ensureLoaded(env, libPath);
-
-    if (!g_sigFunc) {
-        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "sig func not available");
+    if (!libPath) {
         env->ReleaseStringUTFChars(jurl, url);
         env->ReleaseStringUTFChars(jheaders, headers);
-        env->ReleaseStringUTFChars(jLibPath, libPath);
         return nullptr;
     }
 
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Calling sig func");
-    const char* result = g_sigFunc(url, headers);
+    if (!ensureLoaded(libPath)) {
+        const char* message = g_loadError.empty()
+                ? "Failed to initialize libmetasec_ml.so" : g_loadError.c_str();
+        env->ReleaseStringUTFChars(jurl, url);
+        env->ReleaseStringUTFChars(jheaders, headers);
+        env->ReleaseStringUTFChars(jLibPath, libPath);
+        throwIllegalState(env, message);
+        return nullptr;
+    }
 
+    const char* result = g_sigFunc(url, headers);
     env->ReleaseStringUTFChars(jurl, url);
     env->ReleaseStringUTFChars(jheaders, headers);
     env->ReleaseStringUTFChars(jLibPath, libPath);
 
     if (!result) {
-        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "sig func returned null");
+        throwIllegalState(env, "Signature function returned null");
         return nullptr;
     }
-
-    jstring jresult = env->NewStringUTF(result);
-    return jresult;
+    return env->NewStringUTF(result);
 }

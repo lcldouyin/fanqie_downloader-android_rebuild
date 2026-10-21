@@ -55,6 +55,7 @@ public class AudioPlaybackService extends Service {
     private static final int AUDIO_URL_BATCH_SIZE = 5;
     private static final long PROGRESS_CHECK_INTERVAL_MS = 500;
     private static final long PAGE_SYNC_INTERVAL_MS = 2500;
+    private static final long RESUME_SAVE_INTERVAL_MS = 1000;
     private static final long AUDIO_FOCUS_RETRY_INTERVAL_MS = 1000;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -73,6 +74,7 @@ public class AudioPlaybackService extends Service {
     private int queueStartIndex = -1;
     private int generation;
     private long lastPageSyncBroadcastAt;
+    private long lastResumeSaveAt;
     private long resumePositionMs;
     private int resumeChapterIndex = -1;
     private float playbackSpeed = 1.5f;
@@ -308,6 +310,10 @@ public class AudioPlaybackService extends Service {
             int progressPercent = duration > 0
                     ? (int) Math.min(100, position * 100L / duration) : 0;
             long now = SystemClock.elapsedRealtime();
+            if (now - lastResumeSaveAt >= RESUME_SAVE_INTERVAL_MS) {
+                persistResumePosition(position);
+                lastResumeSaveAt = now;
+            }
             if (now - lastPageSyncBroadcastAt >= PAGE_SYNC_INTERVAL_MS) {
                 broadcastPlaybackProgress(progressPercent, position, duration);
                 lastPageSyncBroadcastAt = now;
@@ -485,7 +491,6 @@ public class AudioPlaybackService extends Service {
     }
 
     private void broadcastPlaybackProgress(int progressPercent, int positionMs, int durationMs) {
-        persistResumePosition(positionMs);
         Intent intent = new Intent(ACTION_STATE)
                 .setPackage(getPackageName())
                 .putExtra(EXTRA_ACTIVE, active)

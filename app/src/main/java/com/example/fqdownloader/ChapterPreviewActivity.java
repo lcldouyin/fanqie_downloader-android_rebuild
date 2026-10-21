@@ -77,14 +77,11 @@ public class ChapterPreviewActivity extends AppCompatActivity {
     private boolean pendingDownloadTxt;
     private boolean listenModeActive;
     private boolean audioStartPending;
-    private boolean awaitingEntryPlaybackState;
-    private boolean pendingEntryAudioRestart;
     private boolean preserveListeningOnStartFailure;
     private boolean ignoreStoppedServiceIndexOnce;
     private boolean audioChapterListLoading;
     private boolean pendingListenAfterNotificationPermission;
     private boolean audioStartRequested;
-    private boolean playbackStateQueried;
     private int audioQueueIndex = -1;
     private int audioQueueStartIndex = -1;
     private int audioResumeChapterIndex = -1;
@@ -144,23 +141,10 @@ public class ChapterPreviewActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             boolean stateActive = intent.getBooleanExtra(
                     AudioPlaybackService.EXTRA_ACTIVE, false);
-            if (awaitingEntryPlaybackState) {
-                awaitingEntryPlaybackState = false;
-                if (stateActive) {
-                    pendingEntryAudioRestart = true;
-                    listenModeActive = true;
-                    audioQueueIndex = -1;
-                    audioResumeChapterIndex = -1;
-                }
-            }
-            if (pendingEntryAudioRestart) {
-                restartListeningFromPreviewPage();
-                return;
-            }
             String stateBookId = intent.getStringExtra(
                     AudioPlaybackService.EXTRA_STATE_BOOK_ID);
             if (!bookId.equals(stateBookId)) {
-                listenModeActive = stateActive;
+                if (!audioStartPending) listenModeActive = false;
                 updateAudioControls();
                 return;
             }
@@ -303,10 +287,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
         ContextCompat.registerReceiver(this, audioPlaybackReceiver, filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED);
         audioReceiverRegistered = true;
-        if (!playbackStateQueried) {
-            awaitingEntryPlaybackState = true;
-            playbackStateQueried = true;
-        }
         Intent stateIntent = new Intent(this, AudioPlaybackService.class)
                 .setAction(AudioPlaybackService.ACTION_QUERY_STATE);
         startService(stateIntent);
@@ -314,8 +294,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        awaitingEntryPlaybackState = false;
-        pendingEntryAudioRestart = false;
         saveVisibleChapterRunnable.run();
         if (audioReceiverRegistered) {
             unregisterReceiver(audioPlaybackReceiver);
@@ -443,7 +421,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
             }
             audioResumeChapterIndex = -1;
             audioResumePositionMs = 0;
-            if (changingPage) clearSavedAudioResumePosition();
         }
         pageStartIndex = startIndex;
         currentPageChapters.clear();
@@ -485,7 +462,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
                             showPage(chapters);
                             previewLoaded = true;
                             updateControls();
-                            restartListeningFromPreviewPage();
                         });
                     }
 
@@ -619,7 +595,13 @@ public class ChapterPreviewActivity extends AppCompatActivity {
                 pendingVisibleChapterIndex = i;
                 chapterContentContainer.removeCallbacks(saveVisibleChapterRunnable);
                 chapterContentContainer.postDelayed(saveVisibleChapterRunnable, 300);
-                if (!listenModeActive) audioResumeChapterIndex = pageStartIndex + i;
+                if (!listenModeActive) {
+                    int visibleChapterIndex = pageStartIndex + i;
+                    if (audioResumeChapterIndex != visibleChapterIndex) {
+                        audioResumeChapterIndex = visibleChapterIndex;
+                        audioResumePositionMs = 0;
+                    }
+                }
                 return;
             }
         }
@@ -828,7 +810,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
         }
         audioResumePositionMs = audioPositionMs;
         listenModeActive = false;
-        pendingEntryAudioRestart = false;
         preserveListeningOnStartFailure = false;
         pendingAudioServiceStartIndex = -1;
         audioStartRequested = false;
@@ -863,25 +844,14 @@ public class ChapterPreviewActivity extends AppCompatActivity {
                     boolean explicitlySelectedChapter = pendingAudioStartIndex >= 0;
                     long resumePositionMs = explicitlySelectedChapter
                             ? 0 : audioResumePositionMs;
-                    pendingAudioStartIndex = -1;
-                    if (!explicitlySelectedChapter && audioResumeChapterIndex < 0) {
-                        var preferences = getSharedPreferences(
-                                RECENT_READING_PREFERENCES, MODE_PRIVATE);
-                        String savedBookId = preferences.getString(RECENT_AUDIO_BOOK_ID, null);
-                        String savedChapterId = preferences.getString(
-                                RECENT_AUDIO_CHAPTER_ID, null);
-                        if (bookId.equals(savedBookId) && savedChapterId != null) {
-                            for (int i = 0; i < chapters.size(); i++) {
-                                if (savedChapterId.equals(chapters.get(i).itemId)
-                                        && i == pageStartIndex) {
-                                    startIndex = i;
-                                    resumePositionMs = preferences.getLong(
-                                            RECENT_AUDIO_POSITION_MS, 0);
-                                    break;
-                                }
-                            }
+                    if (!explicitlySelectedChapter && shouldStartPlayback) {
+                        int savedResumeIndex = findSavedAudioChapterIndex(chapters);
+                        if (savedResumeIndex >= 0) {
+                            startIndex = savedResumeIndex;
+                            resumePositionMs = getSavedAudioPositionMs();
                         }
                     }
+                    pendingAudioStartIndex = -1;
                     if (startIndex < 0 || startIndex >= audioChapters.size()) {
                         listenModeActive = preserveListeningOnStartFailure;
                         preserveListeningOnStartFailure = false;
@@ -893,8 +863,8 @@ public class ChapterPreviewActivity extends AppCompatActivity {
                     audioQueueIndex = startIndex;
                     if (audioQueueStartIndex < 0) audioQueueStartIndex = startIndex;
                     audioResumeChapterIndex = startIndex;
-                    if (startIndex < pageStartIndex
-                            || startIndex >= pageStartIndex + PAGE_SIZE) {
+                    if (shouldStartPlayback && (startIndex < pageStartIndex
+                            || startIndex >= pageStartIndex + PAGE_SIZE)) {
                         ensureAudioChapterVisible(startIndex);
                     }
                     if (!shouldStartPlayback) {
@@ -905,7 +875,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
                         }
                         return;
                     }
-                    pendingEntryAudioRestart = false;
                     startListeningWithChapterList(chapters, startIndex, resumePositionMs);
                 });
             }
@@ -922,7 +891,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
                         audioChapters.clear();
                         return;
                     }
-                    pendingEntryAudioRestart = false;
                     listenModeActive = preserveListeningOnStartFailure;
                     preserveListeningOnStartFailure = false;
                     updateAudioControls();
@@ -933,12 +901,25 @@ public class ChapterPreviewActivity extends AppCompatActivity {
     }
 
     private void startListeningWithChapterList(List<Chapter> chapters, int requestedStartIndex) {
-        startListeningWithChapterList(chapters, requestedStartIndex, 0);
+        int startIndex = requestedStartIndex;
+        long resumePositionMs = 0;
+        if (startIndex < 0) {
+            startIndex = findSavedAudioChapterIndex(chapters);
+            if (startIndex >= 0) {
+                resumePositionMs = getSavedAudioPositionMs();
+            } else {
+                startIndex = audioResumeChapterIndex >= 0
+                        ? audioResumeChapterIndex : pageStartIndex;
+                if (startIndex == audioResumeChapterIndex) {
+                    resumePositionMs = audioResumePositionMs;
+                }
+            }
+        }
+        startListeningWithChapterList(chapters, startIndex, resumePositionMs);
     }
 
     private void startListeningWithChapterList(
             List<Chapter> chapters, int requestedStartIndex, long resumePositionMs) {
-        pendingEntryAudioRestart = false;
         if (requestedStartIndex < 0) {
             resumePositionMs = audioResumePositionMs;
         }
@@ -985,21 +966,20 @@ public class ChapterPreviewActivity extends AppCompatActivity {
         ContextCompat.startForegroundService(this, intent);
     }
 
-    private void restartListeningFromPreviewPage() {
-        if (!pendingEntryAudioRestart || !previewLoaded
-                || isFinishing() || isDestroyed()) return;
-        preserveListeningOnStartFailure = true;
-        listenModeActive = true;
-        audioQueueStartIndex = -1;
-        pendingAudioStartIndex = pageStartIndex;
-        audioStartRequested = true;
-        audioStartPending = true;
-        if (audioChapters.isEmpty()) {
-            loadAudioChapterList(true);
-        } else {
-            pendingEntryAudioRestart = false;
-            startListeningWithChapterList(audioChapters, pageStartIndex, 0);
+    private int findSavedAudioChapterIndex(List<Chapter> chapters) {
+        var preferences = getSharedPreferences(RECENT_READING_PREFERENCES, MODE_PRIVATE);
+        String savedBookId = preferences.getString(RECENT_AUDIO_BOOK_ID, null);
+        String savedChapterId = preferences.getString(RECENT_AUDIO_CHAPTER_ID, null);
+        if (!bookId.equals(savedBookId) || savedChapterId == null) return -1;
+        for (int i = 0; i < chapters.size(); i++) {
+            if (savedChapterId.equals(chapters.get(i).itemId)) return i;
         }
+        return -1;
+    }
+
+    private long getSavedAudioPositionMs() {
+        return Math.max(0, getSharedPreferences(RECENT_READING_PREFERENCES, MODE_PRIVATE)
+                .getLong(RECENT_AUDIO_POSITION_MS, 0));
     }
 
     private void ensureAudioChapterVisible(int chapterIndex) {
@@ -1018,15 +998,6 @@ public class ChapterPreviewActivity extends AppCompatActivity {
         String message = error.getMessage();
         if (isBlank(message)) message = error.getClass().getSimpleName();
         Toast.makeText(this, getString(R.string.audio_error, message), Toast.LENGTH_LONG).show();
-    }
-
-    private void clearSavedAudioResumePosition() {
-        getSharedPreferences(RECENT_READING_PREFERENCES, MODE_PRIVATE)
-                .edit()
-                .remove(RECENT_AUDIO_BOOK_ID)
-                .remove(RECENT_AUDIO_CHAPTER_ID)
-                .remove(RECENT_AUDIO_POSITION_MS)
-                .apply();
     }
 
     private void showAudioSpeedChoices() {
